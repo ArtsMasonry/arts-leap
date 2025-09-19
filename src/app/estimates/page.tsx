@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { db, auth, googleProvider } from "@/lib/firebase";
 import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import {
@@ -17,6 +17,8 @@ import {
 type Item = { description: string; qty: number; unitPrice: number };
 
 export default function EstimatesPage() {
+  const router = useRouter();
+
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -145,17 +147,18 @@ export default function EstimatesPage() {
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
         <h1>Estimates</h1>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          <Link
-            href="/estimates/new"
+          <button
+            onClick={() => router.push("/estimates/new")}
             style={{
               padding: "8px 12px",
               border: "1px solid #ccc",
               borderRadius: 8,
-              textDecoration: "none",
+              background: "white",
+              cursor: "pointer",
             }}
           >
             + New Estimate
-          </Link>
+          </button>
           <span>Hi, {user.displayName || user.email}</span>
           <button onClick={() => signOut(auth)}>Sign out</button>
         </div>
@@ -235,41 +238,67 @@ export default function EstimatesPage() {
         </div>
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <Link
-            href="/estimates/new"
+          <button
+            onClick={() => router.push("/estimates/new")}
             style={{
               padding: "8px 12px",
               border: "1px solid #ccc",
               borderRadius: 8,
-              textDecoration: "none",
+              background: "white",
+              cursor: "pointer",
             }}
           >
             Use full “New Estimate” page
-          </Link>
+          </button>
           <button onClick={addEstimateQuick} disabled={saving}>
             {saving ? "Saving…" : "Quick save here"}
           </button>
         </div>
       </div>
 
-      {/* List with View links */}
+      {/* List with View buttons + status */}
       <div style={{ marginTop: 24 }}>
         <h2>Recent estimates</h2>
         <ul>
-          {estimates.map((e) => (
-            <li
-              key={e.id}
-              style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 6 }}
-            >
-              <span>
-                <strong>{e.customer}</strong> — {e.title || "Estimate"} —{" "}
-                <em>${(e.total ?? 0).toFixed?.(2) ?? e.total}</em>
-              </span>
-              <Link href={`/estimates/${e.id}`} style={{ textDecoration: "underline" }}>
-                View
-              </Link>
-            </li>
-          ))}
+          {estimates.map((e) => {
+            const badgeBg = e.status === "approved" ? "#e6ffed" : "#f2f2f2";
+            const badgeColor = e.status === "approved" ? "#03643a" : "#555";
+            return (
+              <li
+                key={e.id}
+                style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 6 }}
+              >
+                <span>
+                  <strong>{e.customer}</strong> — {e.title || "Estimate"} —{" "}
+                  <em>${(e.total ?? 0).toFixed?.(2) ?? e.total}</em>
+                </span>
+                <span
+                  style={{
+                    padding: "2px 8px",
+                    borderRadius: 999,
+                    background: badgeBg,
+                    color: badgeColor,
+                    fontSize: 12,
+                    border: "1px solid #ddd",
+                  }}
+                >
+                  {e.status === "approved" ? "Approved" : "Draft"}
+                </span>
+                <button
+                  onClick={() => router.push(`/estimates/${e.id}`)}
+                  style={{
+                    textDecoration: "underline",
+                    background: "transparent",
+                    border: "none",
+                    padding: 0,
+                    cursor: "pointer",
+                  }}
+                >
+                  View
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </div>
     </main>
