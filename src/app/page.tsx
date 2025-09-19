@@ -35,7 +35,10 @@ export default function Home() {
     const q = query(collection(db, "customers"), orderBy("createdAt", "desc"));
     const unsubData = onSnapshot(
       q,
-      (snap) => setCustomers(snap.docs.map((d) => ({ id: d.id, ...d.data() } as any))),
+      (snap) =>
+        setCustomers(
+          snap.docs.map((d) => ({ id: d.id, ...d.data() } as any))
+        ),
       (err) => console.error("Firestore listener error:", err)
     );
     return () => unsubData();
