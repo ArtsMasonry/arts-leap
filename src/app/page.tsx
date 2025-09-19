@@ -62,9 +62,20 @@ export default function Home() {
       </p>
 
       {!user ? (
-        <button onClick={() => signInWithPopup(auth, googleProvider)}>
-          Sign in with Google
-        </button>
+<button
+  onClick={async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (e: any) {
+      // fallback if popup is blocked or closes
+      const { signInWithRedirect } = await import("firebase/auth");
+      await signInWithRedirect(auth, googleProvider);
+    }
+  }}
+>
+  Sign in with Google
+</button>
+
       ) : (
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
           <span>Hi, {user.displayName || user.email}</span>
