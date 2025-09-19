@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -22,25 +20,26 @@ export default function Home() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // 1) watch auth first
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setLoading(false);
     });
-
-    const q = query(
-      collection(db, "customers"),
-      orderBy("createdAt", "desc")
-    );
-    const unsubData = onSnapshot(q, (snap) =>
-      setCustomers(snap.docs.map((d) => ({ id: d.id, ...d.data() } as any)))
-    );
-
-    return () => {
-      unsubAuth();
-      unsubData();
-    };
+    return () => unsubAuth();
   }, []);
+
+  // 2) only start Firestore listener AFTER we have a user
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, "customers"), orderBy("createdAt", "desc"));
+    const unsubData = onSnapshot(
+      q,
+      (snap) => setCustomers(snap.docs.map((d) => ({ id: d.id, ...d.data() } as any))),
+      (err) => console.error("Firestore listener error:", err)
+    );
+    return () => unsubData();
+  }, [user]);
 
   const addCustomer = async () => {
     if (!name.trim()) return;
@@ -62,20 +61,18 @@ export default function Home() {
       </p>
 
       {!user ? (
-<button
-  onClick={async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (e: any) {
-      // fallback if popup is blocked or closes
-      const { signInWithRedirect } = await import("firebase/auth");
-      await signInWithRedirect(auth, googleProvider);
-    }
-  }}
->
-  Sign in with Google
-</button>
-
+        <button
+          onClick={async () => {
+            try {
+              await signInWithPopup(auth, googleProvider);
+            } catch (e: any) {
+              const { signInWithRedirect } = await import("firebase/auth");
+              await signInWithRedirect(auth, googleProvider);
+            }
+          }}
+        >
+          Sign in with Google
+        </button>
       ) : (
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
           <span>Hi, {user.displayName || user.email}</span>
@@ -107,16 +104,4 @@ export default function Home() {
           <h2 style={{ marginTop: 24 }}>Customers</h2>
           <ul>
             {customers.map((c) => (
-              <li key={c.id}>
-                <strong>{c.name}</strong>
-                {c.note ? ` — ${c.note}` : ""}
-              </li>
-            ))}
-          </ul>
-        </>
-      ) : (
-        <p>Sign in to add/view customers.</p>
-      )}
-    </main>
-  );
-}
+              <li
