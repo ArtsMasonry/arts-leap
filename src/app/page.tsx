@@ -11,6 +11,7 @@ import {
   query,
   orderBy,
   serverTimestamp,
+  where,
 } from "firebase/firestore";
 
 export default function Home() {
@@ -29,16 +30,17 @@ export default function Home() {
     return () => unsubAuth();
   }, []);
 
-  // 2) only start Firestore listener AFTER we have a user
+  // 2) only start Firestore listener AFTER we have a user, and only for their docs
   useEffect(() => {
     if (!user) return;
-    const q = query(collection(db, "customers"), orderBy("createdAt", "desc"));
+    const qUsers = query(
+      collection(db, "customers"),
+      where("uid", "==", user.uid),
+      orderBy("createdAt", "desc")
+    );
     const unsubData = onSnapshot(
-      q,
-      (snap) =>
-        setCustomers(
-          snap.docs.map((d) => ({ id: d.id, ...d.data() } as any))
-        ),
+      qUsers,
+      (snap) => setCustomers(snap.docs.map((d) => ({ id: d.id, ...d.data() } as any))),
       (err) => console.error("Firestore listener error:", err)
     );
     return () => unsubData();
@@ -69,7 +71,6 @@ export default function Home() {
             try {
               await signInWithPopup(auth, googleProvider);
             } catch (e: any) {
-              // popup blocked → fall back to redirect
               const { signInWithRedirect } = await import("firebase/auth");
               await signInWithRedirect(auth, googleProvider);
             }
