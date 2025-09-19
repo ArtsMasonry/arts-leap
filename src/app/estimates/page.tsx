@@ -235,13 +235,23 @@ export default function EstimatesPage() {
       {/* List */}
       <div style={{ marginTop: 24 }}>
         <h2>Recent estimates</h2>
+             <div style={{ marginTop: 24 }}>
+        <h2>Recent estimates</h2>
         <ul>
           {estimates.map((e) => (
-            <li key={e.id}>
-              <strong>{e.customer}</strong> — {e.title || "Estimate"} — <em>${(e.total ?? 0).toFixed?.(2) ?? e.total}</em>
+            <li key={e.id} style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              <span>
+                <strong>{e.customer}</strong> — {e.title || "Estimate"} —{" "}
+                <em>${(e.total ?? 0).toFixed?.(2) ?? e.total}</em>
+              </span>
+              <a href={`/estimates/${e.id}`} style={{ textDecoration: "underline" }}>
+                View
+              </a>
             </li>
           ))}
         </ul>
+      </div>
+
       </div>
     </main>
   );
