@@ -1,0 +1,65 @@
+[debug] [2025-09-19T20:53:34.096Z] ----------------------------------------------------------------------
+[debug] [2025-09-19T20:53:34.098Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\andym\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js init hosting
+[debug] [2025-09-19T20:53:34.098Z] CLI Version:   14.17.0
+[debug] [2025-09-19T20:53:34.098Z] Platform:      win32
+[debug] [2025-09-19T20:53:34.099Z] Node Version:  v22.19.0
+[debug] [2025-09-19T20:53:34.099Z] Time:          Fri Sep 19 2025 15:53:34 GMT-0500 (Central Daylight Time)
+[debug] [2025-09-19T20:53:34.099Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-09-19T20:53:34.102Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-09-19T20:53:34.102Z] > authorizing via signed-in user (andymayeshiba@gmail.com)
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  C:\Users\andym\arts-leap
+
+[info] 
+=== Project Setup
+[info] 
+[info] First, let's associate this project directory with a Firebase project.
+[info] You can create multiple project aliases by running firebase use --add, 
+[info] but for now we'll just set up a default project.
+[info] 
+[debug] [2025-09-19T20:53:44.374Z] Using project from CLI flag: tether-71e0c
+[debug] [2025-09-19T20:53:44.375Z] Checked if tokens are valid: false, expires at: 1758316031054
+[debug] [2025-09-19T20:53:44.375Z] Checked if tokens are valid: false, expires at: 1758316031054
+[debug] [2025-09-19T20:53:44.375Z] > refreshing access token with scopes: []
+[debug] [2025-09-19T20:53:44.377Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-09-19T20:53:44.377Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-09-19T20:53:44.552Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-09-19T20:53:44.552Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-09-19T20:53:44.556Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/tether-71e0c [none]
+[debug] [2025-09-19T20:53:44.844Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/tether-71e0c 200
+[debug] [2025-09-19T20:53:44.844Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/tether-71e0c {"projectId":"tether-71e0c","projectNumber":"277809008742","displayName":"Tether","name":"projects/tether-71e0c","resources":{"hostingSite":"tether-71e0c","realtimeDatabaseInstance":"tether-71e0c-default-rtdb"},"state":"ACTIVE","etag":"1_3c5ba133-23a1-4568-9c9d-719df814c4a5"}
+[info] i  Using project tether-71e0c (Tether) 
+[info] 
+=== Hosting Setup
+[debug] [2025-09-19T20:53:44.848Z] Checked if tokens are valid: true, expires at: 1758318823552
+[debug] [2025-09-19T20:53:44.848Z] Checked if tokens are valid: true, expires at: 1758318823552
+[debug] [2025-09-19T20:53:44.848Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/tether-71e0c [none]
+[debug] [2025-09-19T20:53:45.055Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/tether-71e0c 200
+[debug] [2025-09-19T20:53:45.055Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/tether-71e0c {"projectId":"tether-71e0c","projectNumber":"277809008742","displayName":"Tether","name":"projects/tether-71e0c","resources":{"hostingSite":"tether-71e0c","realtimeDatabaseInstance":"tether-71e0c-default-rtdb"},"state":"ACTIVE","etag":"1_3c5ba133-23a1-4568-9c9d-719df814c4a5"}
+[info] 
+[info] Your public directory is the folder (relative to your project directory) that
+[info] will contain Hosting assets to be uploaded with firebase deploy. If you
+[info] have a build process for your assets, use your build's output directory.
+[info] 
+[debug] [2025-09-19T20:55:40.619Z] ExitPromptError: User force closed the prompt with SIGINT
+    at Interface.sigint (C:\Users\andym\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\@inquirer\core\dist\commonjs\lib\create-prompt.js:101:37)
+    at Interface.emit (node:events:519:28)
+    at Interface.emit (node:domain:489:12)
+    at [_ttyWrite] [as _ttyWrite] (node:internal/readline/interface:1132:18)
+    at ReadStream.onkeypress (node:internal/readline/interface:271:20)
+    at ReadStream.emit (node:events:531:35)
+    at ReadStream.emit (node:domain:489:12)
+    at emitKeys (node:internal/readline/utils:370:14)
+    at emitKeys.next (<anonymous>)
+    at ReadStream.onData (node:internal/readline/emitKeypressEvents:64:36)
+[error] 
+[error] Error: An unexpected error has occurred.
