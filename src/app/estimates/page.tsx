@@ -1,45 +1,41 @@
-// app/estimates/page.tsx
-import Link from "next/link";
-import { collection, getDocs } from "firebase/firestore";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
+
+import { useEffect, useState } from "react";
+import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import Link from "next/link";
 
-export const dynamic = "force-dynamic"; // ensure server renders fresh
+export default function EstimatesList() {
+  const [estimates, setEstimates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-export default async function EstimatesPage() {
-  const snap = await getDocs(collection(db, "estimates"));
-  const estimates = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as any[];
+  useEffect(() => {
+    const q = query(collection(db, "estimates"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(q, (snap) => {
+      setEstimates(snap.docs.map((d) => ({ id: d.id, ...d.data() } as any)));
+      setLoading(false);
+    });
+    return () => unsub();
+  }, []);
 
   return (
-    <div className="p-6 space-y-4">
-      <h1 className="text-2xl font-bold">Recent Estimates</h1>
-
-      {estimates.length === 0 ? (
-        <p className="text-gray-600">No estimates found.</p>
+    <main style={{ maxWidth: 720, margin: "24px auto", padding: 16 }}>
+      <h1>Estimates</h1>
+      <Link href="/estimates/new">+ New Estimate</Link>
+      {loading ? (
+        <p>Loading…</p>
       ) : (
-        <ul className="space-y-2">
-          {estimates.map((est) => (
-            <li
-              key={est.id}
-              className="flex items-center justify-between border rounded-md p-3"
-            >
-              <div>
-                <p className="font-medium">
-                  {est.title || "Untitled Estimate"}
-                </p>
-                <p className="text-sm text-gray-500">
-                  {est.status || "Draft"}
-                </p>
-              </div>
-              <Link
-                href={`/estimates/${est.id}`}
-                className="text-blue-600 hover:underline"
-              >
-                View
+        <ul>
+          {estimates.map((e) => (
+            <li key={e.id}>
+              <Link href={`/estimates/${e.id}`}>
+                {e.customerName || "Untitled"} ({e.status})
               </Link>
             </li>
           ))}
         </ul>
       )}
-    </div>
+    </main>
   );
 }
