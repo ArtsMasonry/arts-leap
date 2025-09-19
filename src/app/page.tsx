@@ -9,6 +9,8 @@ import {
   addDoc,
   onSnapshot,
   serverTimestamp,
+  query,
+  orderBy,
 } from "firebase/firestore";
 
 export default function Home() {
@@ -18,33 +20,23 @@ export default function Home() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [lastError, setLastError] = useState<string | null>(null);
 
-  // watch auth first
+  // auth first
   useEffect(() => {
-    const unsubAuth = onAuthStateChanged(auth, (u) => {
+    const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setLoading(false);
     });
-    return () => unsubAuth();
+    return () => unsub();
   }, []);
 
-  // listen to ALL customers (no filter, no index needed)
+  // live customers list
   useEffect(() => {
     if (!user) return;
-    const col = collection(db, "customers");
-    const unsub = onSnapshot(
-      col,
-      (snap) => {
-        const toMs = (v: any) => (v?.toMillis ? v.toMillis() : 0);
-        const items = snap.docs
-          .map((d) => ({ id: d.id, ...d.data() } as any))
-          .sort((a, b) => toMs(b.createdAt) - toMs(a.createdAt));
-        setCustomers(items);
-        setLastError(null);
-      },
-      (err) => setLastError(err.message || String(err))
-    );
+    const qAll = query(collection(db, "customers"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(qAll, (snap) => {
+      setCustomers(snap.docs.map((d) => ({ id: d.id, ...d.data() } as any)));
+    });
     return () => unsub();
   }, [user]);
 
@@ -52,18 +44,13 @@ export default function Home() {
     if (!name.trim()) return;
     try {
       setSaving(true);
-      setLastError(null);
       await addDoc(collection(db, "customers"), {
         name: name.trim(),
         note: note.trim(),
         createdAt: serverTimestamp(),
-        uid: user?.uid ?? null,
       });
       setName("");
       setNote("");
-    } catch (e: any) {
-      setLastError(e?.message || String(e));
-      alert("Could not save. Check Firestore rules & try again.");
     } finally {
       setSaving(false);
     }
@@ -81,7 +68,7 @@ export default function Home() {
           onClick={async () => {
             try {
               await signInWithPopup(auth, googleProvider);
-            } catch (e: any) {
+            } catch {
               const { signInWithRedirect } = await import("firebase/auth");
               await signInWithRedirect(auth, googleProvider);
             }
@@ -102,21 +89,17 @@ export default function Home() {
         <p>Loading…</p>
       ) : user ? (
         <>
-          {lastError ? (
-            <p style={{ color: "crimson" }}>Error: {lastError}</p>
-          ) : null}
-
           <h2>Add customer</h2>
           <div style={{ display: "grid", gap: 8, maxWidth: 480 }}>
             <input
               placeholder="Customer name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(ev) => setName(ev.target.value)}
             />
             <input
               placeholder="Note"
               value={note}
-              onChange={(e) => setNote(e.target.value)}
+              onChange={(ev) => setNote(ev.target.value)}
             />
             <button onClick={addCustomer} disabled={saving}>
               {saving ? "Saving..." : "Save"}

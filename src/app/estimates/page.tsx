@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { db, auth, googleProvider } from "@/lib/firebase";
 import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import {
@@ -19,7 +20,7 @@ export default function EstimatesPage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // form state
+  // quick form state (optional)
   const [customer, setCustomer] = useState("");
   const [title, setTitle] = useState("Estimate");
   const [items, setItems] = useState<Item[]>([
@@ -71,11 +72,11 @@ export default function EstimatesPage() {
 
   const addRow = () =>
     setItems((prev) => [...prev, { description: "", qty: 1, unitPrice: 0 }]);
+
   const removeRow = (i: number) =>
     setItems((prev) => prev.filter((_, idx) => idx !== i));
 
   const addEstimateQuick = async () => {
-    // super simple quick add from this page (you also have /estimates/new)
     if (!customer.trim()) {
       alert("Add a customer name first.");
       return;
@@ -144,7 +145,7 @@ export default function EstimatesPage() {
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
         <h1>Estimates</h1>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          <a
+          <Link
             href="/estimates/new"
             style={{
               padding: "8px 12px",
@@ -154,7 +155,7 @@ export default function EstimatesPage() {
             }}
           >
             + New Estimate
-          </a>
+          </Link>
           <span>Hi, {user.displayName || user.email}</span>
           <button onClick={() => signOut(auth)}>Sign out</button>
         </div>
@@ -234,7 +235,7 @@ export default function EstimatesPage() {
         </div>
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <a
+          <Link
             href="/estimates/new"
             style={{
               padding: "8px 12px",
@@ -244,7 +245,7 @@ export default function EstimatesPage() {
             }}
           >
             Use full “New Estimate” page
-          </a>
+          </Link>
           <button onClick={addEstimateQuick} disabled={saving}>
             {saving ? "Saving…" : "Quick save here"}
           </button>
@@ -264,9 +265,9 @@ export default function EstimatesPage() {
                 <strong>{e.customer}</strong> — {e.title || "Estimate"} —{" "}
                 <em>${(e.total ?? 0).toFixed?.(2) ?? e.total}</em>
               </span>
-              <a href={`/estimates/${e.id}`} style={{ textDecoration: "underline" }}>
+              <Link href={`/estimates/${e.id}`} style={{ textDecoration: "underline" }}>
                 View
-              </a>
+              </Link>
             </li>
           ))}
         </ul>
