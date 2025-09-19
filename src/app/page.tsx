@@ -8,8 +8,6 @@ import {
   collection,
   addDoc,
   onSnapshot,
-  query,
-  where,
   serverTimestamp,
 } from "firebase/firestore";
 
@@ -20,8 +18,9 @@ export default function Home() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [lastError, setLastError] = useState<string | null>(null);
 
-  // 1) watch auth first
+  // watch auth first
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, (u) => {
       setUser(u);
@@ -30,29 +29,30 @@ export default function Home() {
     return () => unsubAuth();
   }, []);
 
-  // 2) only start Firestore listener AFTER we have a user
-  //    (no orderBy → no composite index required)
+  // listen to ALL customers (no filter, no index needed)
   useEffect(() => {
     if (!user) return;
-    const qUsers = query(collection(db, "customers"), where("uid", "==", user.uid));
-    const unsubData = onSnapshot(
-      qUsers,
+    const col = collection(db, "customers");
+    const unsub = onSnapshot(
+      col,
       (snap) => {
         const toMs = (v: any) => (v?.toMillis ? v.toMillis() : 0);
         const items = snap.docs
           .map((d) => ({ id: d.id, ...d.data() } as any))
           .sort((a, b) => toMs(b.createdAt) - toMs(a.createdAt));
         setCustomers(items);
+        setLastError(null);
       },
-      (err) => console.error("Firestore listener error:", err)
+      (err) => setLastError(err.message || String(err))
     );
-    return () => unsubData();
+    return () => unsub();
   }, [user]);
 
   const addCustomer = async () => {
     if (!name.trim()) return;
     try {
       setSaving(true);
+      setLastError(null);
       await addDoc(collection(db, "customers"), {
         name: name.trim(),
         note: note.trim(),
@@ -61,8 +61,8 @@ export default function Home() {
       });
       setName("");
       setNote("");
-    } catch (e) {
-      console.error("Add customer failed:", e);
+    } catch (e: any) {
+      setLastError(e?.message || String(e));
       alert("Could not save. Check Firestore rules & try again.");
     } finally {
       setSaving(false);
@@ -82,7 +82,6 @@ export default function Home() {
             try {
               await signInWithPopup(auth, googleProvider);
             } catch (e: any) {
-              // popup blocked → fall back to redirect
               const { signInWithRedirect } = await import("firebase/auth");
               await signInWithRedirect(auth, googleProvider);
             }
@@ -103,6 +102,10 @@ export default function Home() {
         <p>Loading…</p>
       ) : user ? (
         <>
+          {lastError ? (
+            <p style={{ color: "crimson" }}>Error: {lastError}</p>
+          ) : null}
+
           <h2>Add customer</h2>
           <div style={{ display: "grid", gap: 8, maxWidth: 480 }}>
             <input
