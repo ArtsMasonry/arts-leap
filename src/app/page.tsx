@@ -104,4 +104,8 @@ export default function Home() {
           <h2 style={{ marginTop: 24 }}>Customers</h2>
           <ul>
             {customers.map((c) => (
-              <li
+              <li key={c.id}>
+                <strong>{c.name}</strong>
+                {c.note ? ` — ${c.note}` : ""}
+              </li>
+            ))}
