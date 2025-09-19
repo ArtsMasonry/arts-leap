@@ -66,6 +66,7 @@ export default function Home() {
             try {
               await signInWithPopup(auth, googleProvider);
             } catch (e: any) {
+              // popup blocked → fall back to redirect
               const { signInWithRedirect } = await import("firebase/auth");
               await signInWithRedirect(auth, googleProvider);
             }
@@ -109,3 +110,11 @@ export default function Home() {
                 {c.note ? ` — ${c.note}` : ""}
               </li>
             ))}
+          </ul>
+        </>
+      ) : (
+        <p>Sign in to add/view customers.</p>
+      )}
+    </main>
+  );
+}
