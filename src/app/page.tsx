@@ -9,9 +9,8 @@ import {
   addDoc,
   onSnapshot,
   query,
-  orderBy,
-  serverTimestamp,
   where,
+  serverTimestamp,
 } from "firebase/firestore";
 
 export default function Home() {
@@ -20,6 +19,7 @@ export default function Home() {
   const [note, setNote] = useState("");
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   // 1) watch auth first
   useEffect(() => {
@@ -30,17 +30,20 @@ export default function Home() {
     return () => unsubAuth();
   }, []);
 
-  // 2) only start Firestore listener AFTER we have a user, and only for their docs
+  // 2) only start Firestore listener AFTER we have a user
+  //    (no orderBy → no composite index required)
   useEffect(() => {
     if (!user) return;
-    const qUsers = query(
-      collection(db, "customers"),
-      where("uid", "==", user.uid),
-      orderBy("createdAt", "desc")
-    );
+    const qUsers = query(collection(db, "customers"), where("uid", "==", user.uid));
     const unsubData = onSnapshot(
       qUsers,
-      (snap) => setCustomers(snap.docs.map((d) => ({ id: d.id, ...d.data() } as any))),
+      (snap) => {
+        const toMs = (v: any) => (v?.toMillis ? v.toMillis() : 0);
+        const items = snap.docs
+          .map((d) => ({ id: d.id, ...d.data() } as any))
+          .sort((a, b) => toMs(b.createdAt) - toMs(a.createdAt));
+        setCustomers(items);
+      },
       (err) => console.error("Firestore listener error:", err)
     );
     return () => unsubData();
@@ -48,14 +51,22 @@ export default function Home() {
 
   const addCustomer = async () => {
     if (!name.trim()) return;
-    await addDoc(collection(db, "customers"), {
-      name: name.trim(),
-      note: note.trim(),
-      createdAt: serverTimestamp(),
-      uid: user?.uid ?? null,
-    });
-    setName("");
-    setNote("");
+    try {
+      setSaving(true);
+      await addDoc(collection(db, "customers"), {
+        name: name.trim(),
+        note: note.trim(),
+        createdAt: serverTimestamp(),
+        uid: user?.uid ?? null,
+      });
+      setName("");
+      setNote("");
+    } catch (e) {
+      console.error("Add customer failed:", e);
+      alert("Could not save. Check Firestore rules & try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -71,6 +82,7 @@ export default function Home() {
             try {
               await signInWithPopup(auth, googleProvider);
             } catch (e: any) {
+              // popup blocked → fall back to redirect
               const { signInWithRedirect } = await import("firebase/auth");
               await signInWithRedirect(auth, googleProvider);
             }
@@ -103,7 +115,9 @@ export default function Home() {
               value={note}
               onChange={(e) => setNote(e.target.value)}
             />
-            <button onClick={addCustomer}>Save</button>
+            <button onClick={addCustomer} disabled={saving}>
+              {saving ? "Saving..." : "Save"}
+            </button>
           </div>
 
           <h2 style={{ marginTop: 24 }}>Customers</h2>
