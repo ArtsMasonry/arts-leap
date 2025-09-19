@@ -1,286 +1,118 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+// app/estimates/new/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
-import { auth, googleProvider, db } from "@/lib/firebase";
-import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
-import {
-  addDoc,
-  collection,
-  onSnapshot,
-  orderBy,
-  query,
-  serverTimestamp,
-} from "firebase/firestore";
-
-type Item = { description: string; qty: number; unitPrice: number };
+import { getAuth } from "firebase/auth";
 
 export default function NewEstimatePage() {
   const router = useRouter();
+  const auth = getAuth();
 
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  // customers for dropdown
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [customerId, setCustomerId] = useState<string>("");
-  const [customerName, setCustomerName] = useState<string>("");
-
-  // estimate form
-  const [title, setTitle] = useState("Estimate");
-  const [items, setItems] = useState<Item[]>([{ description: "", qty: 1, unitPrice: 0 }]);
+  const [title, setTitle] = useState("");
+  const [customer, setCustomer] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // auth first
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setLoading(false);
-    });
-    return () => unsub();
-  }, []);
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
 
-  // load customer list (company-wide)
-  useEffect(() => {
-    if (!user) return;
-    const qy = query(collection(db, "customers"), orderBy("name", "asc"));
-    const unsub = onSnapshot(qy, (snap) => {
-      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as any));
-      setCustomers(list);
-      // prefill first customer if none chosen
-      if (!customerId && list.length > 0) {
-        setCustomerId(list[0].id);
-        setCustomerName((list[0].name as string) || "");
-      }
-    });
-    return () => unsub();
-  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // keep name in sync with dropdown choice (so it’s stored redundantly for easy display)
-  useEffect(() => {
-    const c = customers.find((c) => c.id === customerId);
-    if (c) setCustomerName(c.name || "");
-  }, [customerId, customers]);
-
-  const totals = useMemo(() => {
-    const subtotal = items.reduce(
-      (sum, it) => sum + (Number(it.qty) || 0) * (Number(it.unitPrice) || 0),
-      0
-    );
-    const taxRate = 0; // adjust later if you want tax
-    const tax = subtotal * taxRate;
-    const total = subtotal + tax;
-    return { subtotal, tax, total };
-  }, [items]);
-
-  const setItem = (i: number, patch: Partial<Item>) => {
-    setItems((prev) => {
-      const next = [...prev];
-      next[i] = { ...next[i], ...patch };
-      return next;
-    });
-  };
-  const addRow = () => setItems((prev) => [...prev, { description: "", qty: 1, unitPrice: 0 }]);
-  const removeRow = (i: number) => setItems((prev) => prev.filter((_, idx) => idx !== i));
-
-  const saveEstimate = async () => {
-    // allow either: pick from dropdown OR type a new customer name
-    const finalCustomerName = (customerName || "").trim();
-    const finalCustomerId = (customerId || "").trim();
-
-    if (!finalCustomerName && !finalCustomerId) {
-      alert("Pick a customer from the list, or type a customer name.");
-      return;
-    }
-    if (items.every((it) => !it.description.trim())) {
-      alert("Add at least one line item description.");
+    if (!title.trim()) {
+      setError("Title is required.");
       return;
     }
 
     try {
       setSaving(true);
 
-      const cleanItems = items
-        .filter((it) => it.description.trim() || it.qty || it.unitPrice)
-        .map((it) => ({
-          description: it.description.trim(),
-          qty: Number(it.qty) || 0,
-          unitPrice: Number(it.unitPrice) || 0,
-          lineTotal: (Number(it.qty) || 0) * (Number(it.unitPrice) || 0),
-        }));
+      const uid = auth.currentUser?.uid || null;
 
       const docRef = await addDoc(collection(db, "estimates"), {
-        // store both ID (if chosen) and denormalized name (for quick display)
-        customerId: finalCustomerId || null,
-        customer: finalCustomerName || null,
-        title: title.trim() || "Estimate",
-        items: cleanItems,
-        notes: notes.trim(),
-        subtotal: Number(totals.subtotal.toFixed(2)),
-        tax: Number(totals.tax.toFixed(2)),
-        total: Number(totals.total.toFixed(2)),
-        status: "draft",
+        title: title.trim(),
+        customer: customer.trim() || null,
+        notes: notes.trim() || null,
+        status: "Draft",
+        items: [], // placeholder for line items
         createdAt: serverTimestamp(),
-        createdBy: user?.uid ?? null,
+        updatedAt: serverTimestamp(),
+        createdBy: uid,
       });
 
-      // go to the nice read-only page you already have
+      // go straight to the detail page
       router.push(`/estimates/${docRef.id}`);
-    } catch (e) {
-      console.error(e);
-      alert("Could not save estimate. Check rules and try again.");
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.message || "Failed to save estimate.");
     } finally {
       setSaving(false);
     }
-  };
-
-  if (loading) return <main style={{ padding: 16 }}>Loading…</main>;
-
-  if (!user) {
-    return (
-      <main style={{ maxWidth: 900, margin: "24px auto", padding: 16 }}>
-        <h1>New Estimate</h1>
-        <p style={{ color: "#666" }}>Please sign in to create estimates.</p>
-        <button
-          onClick={async () => {
-            try {
-              await signInWithPopup(auth, googleProvider);
-            } catch {
-              const { signInWithRedirect } = await import("firebase/auth");
-              await signInWithRedirect(auth, googleProvider);
-            }
-          }}
-        >
-          Sign in with Google
-        </button>
-      </main>
-    );
   }
 
   return (
-    <main style={{ maxWidth: 1000, margin: "24px auto", padding: 16 }}>
-      {/* Top bar */}
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-        <h1>New Estimate</h1>
-        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          <span>Hi, {user.displayName || user.email}</span>
-          <button onClick={() => signOut(auth)}>Sign out</button>
-        </div>
-      </div>
+    <div className="p-6 max-w-2xl">
+      <h1 className="text-2xl font-bold mb-4">New Estimate</h1>
 
-      {/* Customer chooser */}
-      <div style={{ display: "grid", gap: 12, padding: 12, border: "1px solid #ddd", borderRadius: 8, marginBottom: 16 }}>
-        <h3 style={{ margin: 0 }}>Customer</h3>
-        <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr" }}>
-          <div>
-            <label style={{ display: "block", fontSize: 12, color: "#666" }}>Pick existing customer</label>
-            <select
-              value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
-              style={{ width: "100%", padding: 8 }}
-            >
-              {customers.length === 0 ? (
-                <option value="">(no customers yet)</option>
-              ) : null}
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name || "(unnamed)"}
-                </option>
-              ))}
-              <option value="">— or type a new name —</option>
-            </select>
-          </div>
-          <div>
-            <label style={{ display: "block", fontSize: 12, color: "#666" }}>Or type a customer name</label>
-            <input
-              placeholder="New customer name"
-              value={customerName}
-              onChange={(e) => {
-                setCustomerName(e.target.value);
-                // if they type a name, clear dropdown selection
-                if (e.target.value.trim().length > 0) setCustomerId("");
-              }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Estimate form */}
-      <div style={{ display: "grid", gap: 12, padding: 12, border: "1px solid #ddd", borderRadius: 8 }}>
-        <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr" }}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Title *</label>
           <input
-            placeholder="Estimate title (optional)"
+            type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            className="w-full border rounded-md px-3 py-2 outline-none"
+            placeholder="Patio repair, brick steps, etc."
+            required
           />
         </div>
 
         <div>
-          <h3 style={{ margin: "8px 0" }}>Line items</h3>
-          <div style={{ display: "grid", gap: 8 }}>
-            {items.map((it, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 100px 140px 100px 80px",
-                  gap: 8,
-                  alignItems: "center",
-                }}
-              >
-                <input
-                  placeholder="Description"
-                  value={it.description}
-                  onChange={(e) => setItem(i, { description: e.target.value })}
-                />
-                <input
-                  type="number"
-                  placeholder="Qty"
-                  value={it.qty}
-                  onChange={(e) => setItem(i, { qty: Number(e.target.value) })}
-                />
-                <input
-                  type="number"
-                  placeholder="Unit price"
-                  value={it.unitPrice}
-                  onChange={(e) =>
-                    setItem(i, { unitPrice: Number(e.target.value) })
-                  }
-                  step="0.01"
-                />
-                <div style={{ textAlign: "right" }}>
-                  ${((Number(it.qty) || 0) * (Number(it.unitPrice) || 0)).toFixed(2)}
-                </div>
-                <button onClick={() => removeRow(i)} disabled={items.length === 1}>
-                  Remove
-                </button>
-              </div>
-            ))}
-            <button onClick={addRow}>+ Add line</button>
-          </div>
+          <label className="block text-sm font-medium mb-1">Customer</label>
+          <input
+            type="text"
+            value={customer}
+            onChange={(e) => setCustomer(e.target.value)}
+            className="w-full border rounded-md px-3 py-2 outline-none"
+            placeholder="Customer name"
+          />
         </div>
 
-        <textarea
-          placeholder="Notes (optional)"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={3}
-        />
-
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 24, fontSize: 16 }}>
-          <div>Subtotal: <strong>${totals.subtotal.toFixed(2)}</strong></div>
-          <div>Tax: <strong>${totals.tax.toFixed(2)}</strong></div>
-          <div>Total: <strong>${totals.total.toFixed(2)}</strong></div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Notes</label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            className="w-full border rounded-md px-3 py-2 outline-none min-h-[120px]"
+            placeholder="Scope, site details, etc."
+          />
         </div>
 
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <button onClick={saveEstimate} disabled={saving}>
-            {saving ? "Saving…" : "Save estimate"}
+        <div className="pt-2 flex items-center gap-3">
+          <button
+            type="submit"
+            disabled={saving}
+            className="px-4 py-2 rounded-md border bg-black text-white disabled:opacity-60"
+          >
+            {saving ? "Saving…" : "Create Estimate"}
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push("/estimates")}
+            className="px-4 py-2 rounded-md border"
+          >
+            Cancel
           </button>
         </div>
-      </div>
-    </main>
+
+        {error && (
+          <p className="text-red-600 text-sm">
+            {error}
+          </p>
+        )}
+      </form>
+    </div>
   );
 }
