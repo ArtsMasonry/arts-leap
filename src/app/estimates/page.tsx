@@ -43,8 +43,8 @@ export default function EstimatesPage() {
   // load estimates (company-wide, newest first)
   useEffect(() => {
     if (!user) return;
-    const q = query(collection(db, "estimates"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(q, (snap) => {
+    const qy = query(collection(db, "estimates"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(qy, (snap) => {
       setEstimates(snap.docs.map((d) => ({ id: d.id, ...d.data() } as any)));
     });
     return () => unsub();
@@ -55,7 +55,7 @@ export default function EstimatesPage() {
       (sum, it) => sum + (Number(it.qty) || 0) * (Number(it.unitPrice) || 0),
       0
     );
-    const taxRate = 0; // adjust later if you want tax
+    const taxRate = 0;
     const tax = subtotal * taxRate;
     const total = subtotal + tax;
     return { subtotal, tax, total };
@@ -69,11 +69,13 @@ export default function EstimatesPage() {
     });
   };
 
-  const addRow = () => setItems((prev) => [...prev, { description: "", qty: 1, unitPrice: 0 }]);
+  const addRow = () =>
+    setItems((prev) => [...prev, { description: "", qty: 1, unitPrice: 0 }]);
   const removeRow = (i: number) =>
     setItems((prev) => prev.filter((_, idx) => idx !== i));
 
-  const saveEstimate = async () => {
+  const addEstimateQuick = async () => {
+    // super simple quick add from this page (you also have /estimates/new)
     if (!customer.trim()) {
       alert("Add a customer name first.");
       return;
@@ -86,8 +88,7 @@ export default function EstimatesPage() {
           description: it.description.trim(),
           qty: Number(it.qty) || 0,
           unitPrice: Number(it.unitPrice) || 0,
-          lineTotal:
-            (Number(it.qty) || 0) * (Number(it.unitPrice) || 0),
+          lineTotal: (Number(it.qty) || 0) * (Number(it.unitPrice) || 0),
         }));
 
       await addDoc(collection(db, "estimates"), {
@@ -95,22 +96,18 @@ export default function EstimatesPage() {
         title: title.trim() || "Estimate",
         items: cleanItems,
         notes: notes.trim(),
-        subtotal: totals.subtotal,
-        tax: totals.tax,
-        total: totals.total,
+        subtotal: Number(totals.subtotal.toFixed(2)),
+        tax: Number(totals.tax.toFixed(2)),
+        total: Number(totals.total.toFixed(2)),
         status: "draft",
         createdAt: serverTimestamp(),
       });
 
-      // reset the form
       setCustomer("");
       setTitle("Estimate");
       setItems([{ description: "", qty: 1, unitPrice: 0 }]);
       setNotes("");
       alert("Estimate saved!");
-    } catch (e) {
-      console.error(e);
-      alert("Could not save estimate. Check rules and try again.");
     } finally {
       setSaving(false);
     }
@@ -143,16 +140,27 @@ export default function EstimatesPage() {
 
   return (
     <main style={{ maxWidth: 1000, margin: "24px auto", padding: 16 }}>
-      {/* Top bar */}
+      {/* Top bar with New Estimate button */}
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
         <h1>Estimates</h1>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <a
+            href="/estimates/new"
+            style={{
+              padding: "8px 12px",
+              border: "1px solid #ccc",
+              borderRadius: 8,
+              textDecoration: "none",
+            }}
+          >
+            + New Estimate
+          </a>
           <span>Hi, {user.displayName || user.email}</span>
           <button onClick={() => signOut(auth)}>Sign out</button>
         </div>
       </div>
 
-      {/* Form */}
+      {/* (Optional) quick form still here */}
       <div style={{ display: "grid", gap: 12, padding: 12, border: "1px solid #ddd", borderRadius: 8 }}>
         <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr" }}>
           <input
@@ -175,7 +183,7 @@ export default function EstimatesPage() {
                 key={i}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1fr 100px 140px 80px",
+                  gridTemplateColumns: "1fr 100px 140px 100px 80px",
                   gap: 8,
                   alignItems: "center",
                 }}
@@ -201,7 +209,7 @@ export default function EstimatesPage() {
                   step="0.01"
                 />
                 <div style={{ textAlign: "right" }}>
-                  ${(it.qty || 0) * (it.unitPrice || 0)}
+                  ${((Number(it.qty) || 0) * (Number(it.unitPrice) || 0)).toFixed(2)}
                 </div>
                 <button onClick={() => removeRow(i)} disabled={items.length === 1}>
                   Remove
@@ -225,21 +233,33 @@ export default function EstimatesPage() {
           <div>Total: <strong>${totals.total.toFixed(2)}</strong></div>
         </div>
 
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <button onClick={saveEstimate} disabled={saving}>
-            {saving ? "Saving…" : "Save estimate"}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+          <a
+            href="/estimates/new"
+            style={{
+              padding: "8px 12px",
+              border: "1px solid #ccc",
+              borderRadius: 8,
+              textDecoration: "none",
+            }}
+          >
+            Use full “New Estimate” page
+          </a>
+          <button onClick={addEstimateQuick} disabled={saving}>
+            {saving ? "Saving…" : "Quick save here"}
           </button>
         </div>
       </div>
 
-      {/* List */}
+      {/* List with View links */}
       <div style={{ marginTop: 24 }}>
-        <h2>Recent estimates</h2>
-             <div style={{ marginTop: 24 }}>
         <h2>Recent estimates</h2>
         <ul>
           {estimates.map((e) => (
-            <li key={e.id} style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <li
+              key={e.id}
+              style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 6 }}
+            >
               <span>
                 <strong>{e.customer}</strong> — {e.title || "Estimate"} —{" "}
                 <em>${(e.total ?? 0).toFixed?.(2) ?? e.total}</em>
@@ -250,8 +270,6 @@ export default function EstimatesPage() {
             </li>
           ))}
         </ul>
-      </div>
-
       </div>
     </main>
   );
