@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { db } from "@/lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 
@@ -10,11 +11,7 @@ function money(n: number | undefined) {
   return v.toLocaleString(undefined, { style: "currency", currency: "USD" });
 }
 
-export default function EstimateViewPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function EstimateViewPage({ params }: { params: { id: string } }) {
   const { id } = params;
   const [est, setEst] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,7 +50,12 @@ export default function EstimateViewPage({
     >
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
         <h1 style={{ margin: 0 }}>{est.title || "Estimate"}</h1>
-        <button onClick={() => window.print()}>Print</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Link href={`/estimates/${id}/edit`} style={{ textDecoration: "none", border: "1px solid #ccc", padding: "6px 10px", borderRadius: 8 }}>
+            Edit
+          </Link>
+          <button onClick={() => window.print()}>Print</button>
+        </div>
       </div>
 
       <div style={{ marginTop: 8, color: "#555" }}>
@@ -105,7 +107,7 @@ export default function EstimateViewPage({
 
       <style>{`
         @media print {
-          button { display: none; }
+          button, a[href*="/edit"] { display: none; }
           body { background: white; }
         }
       `}</style>
