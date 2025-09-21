@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { db } from "@/lib/firebase";
 import {
   addDoc,
@@ -10,8 +10,10 @@ import {
   getDocs,
   query,
   where,
+  updateDoc,
+  doc,
 } from "firebase/firestore";
-import Link from "next/link";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 type LeadForm = {
   name: string;
@@ -21,6 +23,10 @@ type LeadForm = {
   description: string;
   budget?: string;
 };
+
+const MAX_FILES = 3;
+const MAX_MB_PER_FILE = 15;
+const REDIRECT_MS = 3000; // 3 seconds
 
 export default function RequestBidPage() {
   const [form, setForm] = useState<LeadForm>({
@@ -32,12 +38,39 @@ export default function RequestBidPage() {
     budget: "",
   });
 
+  const [files, setFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<{ leadId: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const onChange = (k: keyof LeadForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm((f) => ({ ...f, [k]: e.target.value }));
+  const previews = useMemo(() => {
+    return files.map((f) => ({
+      name: f.name,
+      url: URL.createObjectURL(f),
+      sizeMB: (f.size / (1024 * 1024)).toFixed(1),
+    }));
+  }, [files]);
+
+  const onChange =
+    (k: keyof LeadForm) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setForm((f) => ({ ...f, [k]: e.target.value }));
+    };
+
+  const onPickFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = Array.from(e.target.files || []);
+    const imgs = picked.filter((f) => f.type.startsWith("image/"));
+    if (imgs.length !== picked.length) {
+      alert("Only image files are allowed.");
+    }
+    const limited = imgs.slice(0, MAX_FILES);
+    const tooBig = limited.find((f) => f.size > MAX_MB_PER_FILE * 1024 * 1024);
+    if (tooBig) {
+      alert(`Each image must be ≤ ${MAX_MB_PER_FILE}MB.`);
+      e.target.value = "";
+      return;
+    }
+    setFiles(limited);
   };
 
   const validate = () => {
@@ -58,41 +91,55 @@ export default function RequestBidPage() {
     }
     setSubmitting(true);
     try {
-      // 1) Upsert a customer (by email)
+      // 1) Upsert a customer (by email, lowercase)
+      const emailLc = form.email.trim().toLowerCase();
       let customerId: string | null = null;
       const existing = await getDocs(
-        query(collection(db, "customers"), where("email", "==", form.email.trim().toLowerCase()))
+        query(collection(db, "customers"), where("email", "==", emailLc))
       );
       if (!existing.empty) {
         customerId = existing.docs[0].id;
       } else {
         const c = await addDoc(collection(db, "customers"), {
           name: form.name.trim(),
-          email: form.email.trim().toLowerCase(),
+          email: emailLc,
           phone: form.phone.trim(),
           address: form.address.trim(),
           createdAt: serverTimestamp(),
-          // simple tag to know this came from a lead form
           source: "request-bid",
         });
         customerId = c.id;
       }
 
-      // 2) Create a lead record
-      const lead = await addDoc(collection(db, "leads"), {
+      // 2) Create the lead without photos first
+      const leadRef = await addDoc(collection(db, "leads"), {
         customerId,
         name: form.name.trim(),
-        email: form.email.trim().toLowerCase(),
+        email: emailLc,
         phone: form.phone.trim(),
         address: form.address.trim(),
         description: form.description.trim(),
         budget: (form.budget || "").trim(),
-        status: "new", // new | contacted | scheduled | closed
+        status: "new",
         createdAt: serverTimestamp(),
+        photos: [],
       });
 
-      // 3) Show success message
-      setDone({ leadId: lead.id });
+      // 3) Optional photos upload
+      if (files.length > 0) {
+        const storage = getStorage();
+        const uploads = files.map(async (file, idx) => {
+          const path = `leads/${leadRef.id}/${Date.now()}-${idx}-${file.name}`;
+          const storageRef = ref(storage, path);
+          await uploadBytes(storageRef, file, { contentType: file.type });
+          return await getDownloadURL(storageRef);
+        });
+        const photoUrls = await Promise.all(uploads);
+        await updateDoc(doc(db, "leads", leadRef.id), { photos: photoUrls });
+      }
+
+      // 4) Show thanks + trigger redirect
+      setDone({ leadId: leadRef.id });
     } catch (e: any) {
       console.error(e);
       setError(e?.message ?? "Something went wrong. Please try again.");
@@ -101,22 +148,26 @@ export default function RequestBidPage() {
     }
   };
 
+  // After success, redirect to public site
+  useEffect(() => {
+    if (!done) return;
+    const t = setTimeout(() => {
+      window.location.href = "https://artsmasonry.com/";
+    }, REDIRECT_MS);
+    return () => clearTimeout(t);
+  }, [done]);
+
   if (done) {
     return (
       <main style={{ maxWidth: 720, margin: "24px auto", padding: 16 }}>
-        <h1>Thanks! 🎉</h1>
-        <p>Your request has been received. We’ll get back to you shortly.</p>
+        <h1>Thank you! 🎉</h1>
+        <p>Your request has been received. We’ll reach out shortly.</p>
         <p style={{ color: "#555" }}>
           Reference ID: <code>{done.leadId}</code>
         </p>
-        <div style={{ marginTop: 16, display: "flex", gap: 12 }}>
-          <Link href="/estimates" style={{ textDecoration: "none" }}>
-            Go to Estimates
-          </Link>
-          <Link href="/" style={{ textDecoration: "none" }}>
-            Back to Home
-          </Link>
-        </div>
+        <p style={{ marginTop: 12, color: "#777" }}>
+          You’ll be redirected to artsmasonry.com in a few seconds…
+        </p>
       </main>
     );
   }
@@ -125,7 +176,7 @@ export default function RequestBidPage() {
     <main style={{ maxWidth: 720, margin: "24px auto", padding: 16 }}>
       <h1>Request a Bid</h1>
       <p style={{ color: "#555", marginBottom: 16 }}>
-        Tell us a bit about your project and we’ll reach out to schedule a visit and provide a bid.
+        Tell us about your project. You can include up to {MAX_FILES} photos.
       </p>
 
       <div style={{ display: "grid", gap: 10 }}>
@@ -157,6 +208,56 @@ export default function RequestBidPage() {
         <label>
           <div>Budget (optional)</div>
           <input value={form.budget} onChange={onChange("budget")} placeholder="$" />
+        </label>
+
+        <label>
+          <div>Photos (up to {MAX_FILES})</div>
+          <input type="file" accept="image/*" multiple onChange={onPickFiles} />
+          {files.length > 0 ? (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
+                gap: 8,
+                marginTop: 8,
+              }}
+            >
+              {previews.map((p, i) => (
+                <div
+                  key={i}
+                  style={{
+                    border: "1px solid #ddd",
+                    borderRadius: 8,
+                    padding: 6,
+                    background: "#fafafa",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "100%",
+                      aspectRatio: "1 / 1",
+                      overflow: "hidden",
+                      borderRadius: 6,
+                      marginBottom: 6,
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={p.url}
+                      alt={p.name}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  </div>
+                  <div style={{ fontSize: 12, color: "#555" }}>
+                    {p.name} — {p.sizeMB}MB
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          <div style={{ fontSize: 12, color: "#777", marginTop: 4 }}>
+            Allowed: images only. Max {MAX_MB_PER_FILE}MB each.
+          </div>
         </label>
 
         {error ? (
