@@ -81,7 +81,13 @@ export default function RootLayout({
             >
               Estimates
             </Link>
-            {/* later: /request-bid public page link if desired */}
+            <Link
+              href="/customers"
+              style={{ textDecoration: "none", color: "#333" }}
+            >
+              Customers
+            </Link>
+            {/* later: consider showing /request-bid publicly on main site instead */}
           </nav>
         </header>
 
