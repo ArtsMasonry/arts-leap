@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useSearchParams, usePathname, useRouter } from "next/navigation";
 
 type Doc = {
   id: string;
@@ -65,10 +66,30 @@ const MOCK: readonly Doc[] = [
 ];
 
 export default function DocumentsPage() {
-  // simple filter state
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  // state
   const [status, setStatus] = useState<string>("");
   const [customer, setCustomer] = useState<string>("");
   const [jobNumber, setJobNumber] = useState<string>("");
+
+  // initialize from URL once
+  useEffect(() => {
+    setStatus(searchParams.get("status") ?? "");
+    setCustomer(searchParams.get("customer") ?? "");
+    setJobNumber(searchParams.get("job") ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run once on mount
+
+  // helper to update URL (and state)
+  const setParam = (key: "status" | "customer" | "job", value: string) => {
+    const sp = new URLSearchParams(Array.from(searchParams.entries()));
+    if (value) sp.set(key, value);
+    else sp.delete(key);
+    router.replace(`${pathname}?${sp.toString()}`);
+  };
 
   // dropdown options from data
   const statusOptions = useMemo(() => {
@@ -96,7 +117,7 @@ export default function DocumentsPage() {
     <main className="p-6">
       <h1 className="text-2xl font-bold">Documents</h1>
       <p className="text-gray-600 mb-4">
-        All documents. Filters here are client-side for now.
+        All documents. Filters persist in the URL now.
       </p>
 
       {/* Filter bar */}
@@ -107,7 +128,10 @@ export default function DocumentsPage() {
             <select
               className="border rounded-xl px-3 py-2 bg-white"
               value={status}
-              onChange={(e) => setStatus(e.target.value)}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                setParam("status", e.target.value);
+              }}
             >
               {statusOptions.map((s) => (
                 <option key={s || "ALL"} value={s}>
@@ -122,7 +146,10 @@ export default function DocumentsPage() {
             <select
               className="border rounded-xl px-3 py-2 bg-white min-w-[220px]"
               value={customer}
-              onChange={(e) => setCustomer(e.target.value)}
+              onChange={(e) => {
+                setCustomer(e.target.value);
+                setParam("customer", e.target.value);
+              }}
             >
               {customerOptions.map((c) => (
                 <option key={c || "ALL"} value={c}>
@@ -138,7 +165,10 @@ export default function DocumentsPage() {
               className="border rounded-xl px-3 py-2"
               placeholder="e.g. JOB-0012"
               value={jobNumber}
-              onChange={(e) => setJobNumber(e.target.value)}
+              onChange={(e) => {
+                setJobNumber(e.target.value);
+                setParam("job", e.target.value);
+              }}
             />
           </div>
         </div>
