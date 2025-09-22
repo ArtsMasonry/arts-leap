@@ -25,6 +25,7 @@ type Customer = {
   city?: string;
   state?: string;
   zip?: string;
+  notes?: string;
 };
 
 type Estimate = {
@@ -173,7 +174,7 @@ export default function CustomerDetailPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Contact card */}
+      {/* Contact & notes card */}
       <section
         style={{
           background: "white",
@@ -181,26 +182,33 @@ export default function CustomerDetailPage({ params }: PageProps) {
           borderRadius: 14,
           padding: 16,
           display: "grid",
-          gap: 6,
+          gap: 10,
           marginBottom: 16,
         }}
       >
-        {fullAddress(customer) ? <div>📍 {fullAddress(customer)}</div> : null}
-        {customer?.phone ? <div>📞 {customer.phone}</div> : null}
-        {customer?.email ? <div>✉️ {customer.email}</div> : null}
-      </section>
+        <div style={{ display: "grid", gap: 6 }}>
+          {fullAddress(customer) ? <div>📍 {fullAddress(customer)}</div> : null}
+          {customer?.phone ? <div>📞 {customer.phone}</div> : null}
+          {customer?.email ? <div>✉️ {customer.email}</div> : null}
+        </div>
 
-      {/* Action shortcuts */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-        <Link
-          href={`/estimates/new?customerId=${encodeURIComponent(id)}&customerName=${encodeURIComponent(
-            name
-          )}`}
-          style={{ textDecoration: "none", background: "#111", color: "white", padding: "8px 12px", borderRadius: 10 }}
-        >
-          + New Estimate
-        </Link>
-      </div>
+        <div>
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>Notes</div>
+          <div
+            style={{
+              whiteSpace: "pre-wrap",
+              background: "#f8fafc",
+              border: "1px solid #eef2f7",
+              borderRadius: 10,
+              padding: 10,
+              color: "#333",
+              minHeight: 40,
+            }}
+          >
+            {customer?.notes?.trim() ? customer.notes : <span style={{ color: "#777" }}>No notes yet.</span>}
+          </div>
+        </div>
+      </section>
 
       {/* Estimates */}
       <section>

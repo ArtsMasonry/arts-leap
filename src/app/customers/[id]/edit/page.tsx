@@ -23,6 +23,7 @@ type Customer = {
   city?: string;
   state?: string;
   zip?: string;
+  notes?: string;
 };
 
 export default function EditCustomerPage({ params }: PageProps) {
@@ -37,6 +38,7 @@ export default function EditCustomerPage({ params }: PageProps) {
     city: "",
     state: "",
     zip: "",
+    notes: "",
   });
 
   const [loading, setLoading] = useState(true);
@@ -64,6 +66,7 @@ export default function EditCustomerPage({ params }: PageProps) {
           city: data.city ?? "",
           state: data.state ?? "",
           zip: data.zip ?? "",
+          notes: data.notes ?? "",
         });
         setLoading(false);
       } catch (e: any) {
@@ -107,6 +110,7 @@ export default function EditCustomerPage({ params }: PageProps) {
         city: form.city?.trim() || "",
         state: form.state?.trim() || "",
         zip: form.zip?.trim() || "",
+        notes: form.notes?.trim() || "",
         updatedAt: serverTimestamp(),
       });
       router.push(`/customers/${id}`);
@@ -182,6 +186,16 @@ export default function EditCustomerPage({ params }: PageProps) {
             <input value={form.zip} onChange={onChange("zip")} />
           </label>
         </div>
+
+        <label>
+          <div>Notes</div>
+          <textarea
+            value={form.notes}
+            onChange={onChange("notes")}
+            rows={5}
+            placeholder="Access instructions, preferences, gate codes, materials on site, etc."
+          />
+        </label>
 
         <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
           <button

@@ -22,6 +22,7 @@ type Customer = {
   city?: string;
   state?: string;
   zip?: string;
+  notes?: string;
   createdAt?: any;
 };
 
@@ -121,6 +122,23 @@ export default function CustomersPage() {
                 {fullAddress(c) ? <div>📍 {fullAddress(c)}</div> : null}
                 {c.phone ? <div>📞 {c.phone}</div> : null}
                 {c.email ? <div>✉️ {c.email}</div> : null}
+                {c.notes ? (
+                  <div
+                    style={{
+                      marginTop: 4,
+                      fontSize: 13,
+                      background: "#f8fafc",
+                      border: "1px solid #eef2f7",
+                      borderRadius: 8,
+                      padding: "6px 8px",
+                      maxHeight: 60,
+                      overflow: "hidden",
+                    }}
+                    title={c.notes}
+                  >
+                    📝 {c.notes}
+                  </div>
+                ) : null}
               </div>
 
               <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
