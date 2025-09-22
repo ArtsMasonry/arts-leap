@@ -20,6 +20,9 @@ type Customer = {
   email?: string;
   phone?: string;
   address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
 };
 
 export default function EditCustomerPage({ params }: PageProps) {
@@ -31,6 +34,9 @@ export default function EditCustomerPage({ params }: PageProps) {
     email: "",
     phone: "",
     address: "",
+    city: "",
+    state: "",
+    zip: "",
   });
 
   const [loading, setLoading] = useState(true);
@@ -55,6 +61,9 @@ export default function EditCustomerPage({ params }: PageProps) {
           email: data.email ?? "",
           phone: data.phone ?? "",
           address: data.address ?? "",
+          city: data.city ?? "",
+          state: data.state ?? "",
+          zip: data.zip ?? "",
         });
         setLoading(false);
       } catch (e: any) {
@@ -95,9 +104,12 @@ export default function EditCustomerPage({ params }: PageProps) {
         email: form.email?.trim() || "",
         phone: form.phone?.trim() || "",
         address: form.address?.trim() || "",
+        city: form.city?.trim() || "",
+        state: form.state?.trim() || "",
+        zip: form.zip?.trim() || "",
         updatedAt: serverTimestamp(),
       });
-      router.push("/customers");
+      router.push(`/customers/${id}`);
     } catch (e: any) {
       setError(e?.message ?? "Failed to save.");
     } finally {
@@ -124,8 +136,8 @@ export default function EditCustomerPage({ params }: PageProps) {
     <main style={{ maxWidth: 720, margin: "24px auto", padding: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <h1 style={{ margin: 0 }}>Edit Customer</h1>
-        <Link href="/customers" style={{ textDecoration: "none" }}>
-          ← Back to Customers
+        <Link href={`/customers/${id}`} style={{ textDecoration: "none" }}>
+          ← Back to Customer
         </Link>
       </div>
 
@@ -152,9 +164,24 @@ export default function EditCustomerPage({ params }: PageProps) {
         </label>
 
         <label>
-          <div>Address</div>
-          <textarea rows={3} value={form.address} onChange={onChange("address")} />
+          <div>Street Address</div>
+          <input value={form.address} onChange={onChange("address")} />
         </label>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 120px 120px", gap: 10 }}>
+          <label>
+            <div>City</div>
+            <input value={form.city} onChange={onChange("city")} />
+          </label>
+          <label>
+            <div>State</div>
+            <input value={form.state} onChange={onChange("state")} />
+          </label>
+          <label>
+            <div>ZIP</div>
+            <input value={form.zip} onChange={onChange("zip")} />
+          </label>
+        </div>
 
         <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
           <button
@@ -202,4 +229,3 @@ export default function EditCustomerPage({ params }: PageProps) {
     </main>
   );
 }
-

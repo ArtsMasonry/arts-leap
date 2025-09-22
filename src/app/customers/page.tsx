@@ -19,8 +19,20 @@ type Customer = {
   email?: string;
   phone?: string;
   address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
   createdAt?: any;
 };
+
+function fullAddress(c: Customer) {
+  const parts = [
+    c.address?.trim(),
+    [c.city, c.state].filter(Boolean).join(", ").trim(),
+    c.zip?.trim(),
+  ].filter(Boolean);
+  return parts.join(" • ");
+}
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -106,7 +118,7 @@ export default function CustomersPage() {
               </div>
 
               <div style={{ color: "#555", fontSize: 14, display: "grid", gap: 4 }}>
-                {c.address ? <div>📍 {c.address}</div> : null}
+                {fullAddress(c) ? <div>📍 {fullAddress(c)}</div> : null}
                 {c.phone ? <div>📞 {c.phone}</div> : null}
                 {c.email ? <div>✉️ {c.email}</div> : null}
               </div>
