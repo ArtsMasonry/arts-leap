@@ -1,5 +1,5 @@
-// Server-only detail page: /documents/{type}/{id}
-// No Firebase yet — just a safe placeholder that parses the URL.
+﻿// Server-only detail page: /documents/{type}/{id}
+// Safe placeholder. We'll wire real data next.
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -8,9 +8,8 @@ type SupportedType = "ESTIMATE" | "CONTRACT" | "CHANGE_ORDER" | "INVOICE";
 
 function normalizeType(input: string | undefined): SupportedType | null {
   if (!input) return null;
-  // accept `change-order` or `change_order`, normalize to CHANGE_ORDER
   const t = input.toUpperCase().replace("-", "_") as SupportedType;
-  const allowed: SupportedType[] = ["ESTIMATE", "CONTRACT", "CHANGE_ORDER", "INVOICE"];
+  const allowed: SupportedType[] = ["ESTIMATE","CONTRACT","CHANGE_ORDER","INVOICE"];
   return allowed.includes(t) ? t : null;
 }
 
@@ -36,7 +35,7 @@ export default function DocumentDetailPage({
             <div><span className="font-medium">Type:</span> {type}</div>
             <div><span className="font-medium">ID:</span> <span className="font-mono break-all">{id}</span></div>
             <div className="text-gray-600 mt-2">
-              (Placeholder — we’ll render real {type.toLowerCase().replace("_", " ")} data here next.)
+              (Placeholder — we’ll render real {type.toLowerCase().replace("_"," ")} data here next.)
             </div>
           </div>
         </div>
