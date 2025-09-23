@@ -60,7 +60,7 @@ function statusBadgeClass(s: Doc["status"]) {
 // ---- Build a Doc from an estimate record ----
 function mapEstimateToDoc(d: DocumentData & { id: string }): Doc {
   const statusRaw = (d.status ?? "DRAFT").toString().toUpperCase();
-  const status =
+  const status: Doc["status"] =
     ([
       "DRAFT","SENT","VIEWED","ACCEPTED","REJECTED",
       "SIGNED","COUNTERSIGNED","ACTIVE","COMPLETED",
@@ -206,7 +206,61 @@ export default function DocumentsClient() {
       ) : (
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 px-4 md:px-0">
           {filtered.map(d => (
-            <div key={d.id} className="rounded-2xl border bg-white p-4 shadow-sm hover:shadow-md transition">
+            <div
+              key={d.id}
+              className="rounded-2xl border bg-white p-4 shadow-sm hover:shadow-md transition"
+            >
               <div className="flex items-start justify-between">
-                <span className={`text-xs px-2 py-1 rounded-full ${typeBadgeClass(d.type)}`}>{d.type.replace("_"," ")}</span>
-                <span className={`text-xs px-2 py-1 round
+                <span className={`text-xs px-2 py-1 rounded-full ${typeBadgeClass(d.type)}`}>
+                  {d.type.replace("_"," ")}
+                </span>
+                <span className={`text-xs px-2 py-1 rounded-full ${statusBadgeClass(d.status)}`}>
+                  {d.status}
+                </span>
+              </div>
+
+              <div className="mt-3">
+                <div className="text-sm text-gray-500">{d.number}</div>
+                <div className="text-base font-semibold">{d.title}</div>
+              </div>
+
+              <div className="mt-3 text-sm text-gray-600 space-y-1">
+                {d.jobNumber && (
+                  <div>
+                    Job: <span className="font-medium">{d.jobNumber}</span>
+                  </div>
+                )}
+                <div>Date: {new Date(d.issueDate).toLocaleDateString()}</div>
+                {d.customerName ? (
+                  <div>
+                    Customer: <span className="font-medium">{d.customerName}</span>
+                  </div>
+                ) : null}
+                {"total" in d && typeof d.total === "number" && (
+                  <div>Total: ${d.total.toFixed(2)}</div>
+                )}
+              </div>
+
+              <div className="mt-4 flex gap-2">
+                {/* Open → unified documents route with type prefix */}
+                <Link
+                  href={`/documents/${d.type}:${d.id}`}
+                  className="text-sm rounded-xl px-3 py-2 border hover:bg-gray-50"
+                >
+                  Open
+                </Link>
+                <button
+                  className="text-sm rounded-xl px-3 py-2 border text-gray-400 cursor-not-allowed"
+                  title="PDF preview coming soon"
+                  disabled
+                >
+                  PDF
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </main>
+  );
+}
