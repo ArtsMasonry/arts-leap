@@ -1,3 +1,31 @@
+﻿"use client";
+
+import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useSearchParams, usePathname, useRouter } from "next/navigation";
+
+type Doc = {
+  id: string;
+  type: "ESTIMATE" | "CONTRACT" | "CHANGE_ORDER" | "INVOICE";
+  status:
+    | "DRAFT" | "SENT" | "VIEWED" | "ACCEPTED" | "REJECTED"
+    | "SIGNED" | "COUNTERSIGNED" | "ACTIVE" | "COMPLETED"
+    | "APPROVED" | "PARTIAL" | "PAID" | "OVERDUE" | "VOID";
+  number: string;
+  title: string;
+  customerName: string;
+  jobNumber: string | null;
+  issueDate: string; // ISO
+  total?: number;
+};
+
+const MOCK: readonly Doc[] = [
+  { id: "d1", type: "ESTIMATE", status: "SENT",    number: "EST-00123", title: "Front walkway",        customerName: "Johnson Family", jobNumber: null,        issueDate: "2025-09-15", total: 6200 },
+  { id: "d2", type: "CONTRACT", status: "ACTIVE",  number: "CTR-00045", title: "Driveway replacement", customerName: "Acme HOA",       jobNumber: "JOB-0012", issueDate: "2025-08-28", total: 18250 },
+  { id: "d3", type: "INVOICE",  status: "PAID",    number: "INV-00101", title: "Final invoice",        customerName: "Johnson Family", jobNumber: "JOB-0015", issueDate: "2025-09-12", total: 6200 },
+  { id: "d4", type: "ESTIMATE", status: "DRAFT",   number: "EST-00124", title: "Retaining wall",       customerName: "Miller, J",      jobNumber: null,        issueDate: "2025-09-18", total: 4200 },
+  { id: "d5", type: "INVOICE",  status: "OVERD
+@"
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
