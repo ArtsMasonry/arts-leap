@@ -1,25 +1,19 @@
-// Minimal, server-only placeholder for diagnostics.
-// No client imports, no Firebase, no Suspense.
+// Minimal server-only page to prove /documents works.
+// No client components, no imports, no Firebase.
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default function DocumentsPage() {
   return (
-    <main className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold">Documents</h1>
-      <p className="mt-2 text-gray-700">
-        If you’re seeing this page, the /documents route is healthy.
+    <main style={{ padding: 24, maxWidth: 720, margin: "0 auto" }}>
+      <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700 }}>Documents</h1>
+      <p style={{ marginTop: 8, color: "#475569" }}>
+        Route OK. This is a minimal placeholder. We�ll re-add the list after this confirms.
       </p>
-      <p className="mt-1 text-gray-600">
-        Next, we’ll reintroduce the list client in a tiny, controlled step.
-      </p>
-
-      <div className="mt-4">
-        <a href="/" className="rounded-xl border px-4 py-2 hover:bg-gray-50">
-          ← Back Home
-        </a>
-      </div>
+      <a href="/" style={{ display: "inline-block", marginTop: 16, padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: 12, textDecoration: "none", color: "#111827" }}>
+        ? Back Home
+      </a>
     </main>
   );
 }
