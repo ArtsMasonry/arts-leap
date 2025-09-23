@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 
-/** Supported types in the /documents/{TYPE}:{id} route */
 type SupportedType = "ESTIMATE" | "CONTRACT" | "CHANGE_ORDER" | "INVOICE";
 
 type Estimate = {
@@ -18,11 +17,12 @@ type Estimate = {
   createdAt?: any;
 };
 
-function formatWhen(ts?: any) {
+function safeFormatDate(ts?: any) {
   try {
-    if (!ts || typeof ts.toDate !== "function") return "";
-    const d = ts.toDate() as Date;
-    return d.toLocaleDateString();
+    if (!ts) return "";
+    if (typeof ts.toDate === "function") return (ts.toDate() as Date).toLocaleDateString();
+    const d = new Date(ts);
+    return isNaN(d.getTime()) ? "" : d.toLocaleDateString();
   } catch {
     return "";
   }
@@ -34,45 +34,67 @@ function money(n?: number) {
 }
 
 export default function DocumentDetailClient({ docKey }: { docKey: string }) {
-  const [type, id] = useMemo(() => {
-    const idx = docKey.indexOf(":");
-    if (idx === -1) return [null, null] as const;
-    const t = docKey.slice(0, idx).toUpperCase() as SupportedType;
-    const i = docKey.slice(idx + 1);
-    return [t, i] as const;
+  // Be tolerant of URL-encoding/strange keys
+  const decodedKey = useMemo(() => {
+    try {
+      return decodeURIComponent(docKey);
+    } catch {
+      return docKey;
+    }
   }, [docKey]);
+
+  const [type, id] = useMemo(() => {
+    const idx = decodedKey.indexOf(":");
+    if (idx === -1) return [null, null] as const;
+    const t = decodedKey.slice(0, idx).toUpperCase() as SupportedType;
+    const i = decodedKey.slice(idx + 1);
+    return [t, i] as const;
+  }, [decodedKey]);
 
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [errMsg, setErrMsg] = useState<string | null>(null);
   const [estimate, setEstimate] = useState<Estimate | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     const run = async () => {
+      setErrMsg(null);
+      setNotFound(false);
+      setLoading(true);
       try {
         if (!type || !id) {
           setNotFound(true);
-          setLoading(false);
           return;
         }
         if (type === "ESTIMATE") {
-          const snap = await getDoc(doc(db, "estimates", id));
+          // Guard: db may be undefined if Firebase init failed
+          if (!db) {
+            setErrMsg("Firestore is not initialized (db missing).");
+            return;
+          }
+          const ref = doc(db, "estimates", id);
+          const snap = await getDoc(ref);
           if (!snap.exists()) {
             setNotFound(true);
           } else {
-            setEstimate((snap.data() as Estimate) ?? null);
+            const data = (snap.data() as Estimate) ?? {};
+            if (!cancelled) setEstimate(data);
           }
-          setLoading(false);
           return;
         }
-        // other types (CONTRACT/INVOICE/CHANGE_ORDER) will be added later
+        // Other types pending
         setNotFound(true);
-        setLoading(false);
-      } catch {
-        setNotFound(true);
-        setLoading(false);
+      } catch (e: any) {
+        setErrMsg(e?.message ?? "Unknown error during load.");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
     run();
+    return () => {
+      cancelled = true;
+    };
   }, [type, id]);
 
   if (!type || !id) {
@@ -88,6 +110,21 @@ export default function DocumentDetailClient({ docKey }: { docKey: string }) {
   }
 
   if (loading) return <main className="p-6">Loading…</main>;
+
+  if (errMsg) {
+    return (
+      <main className="p-6">
+        <h1 className="text-2xl font-bold">Document</h1>
+        <div className="mt-3 rounded-2xl border bg-white p-4">
+          <p className="text-red-700">Error loading document:</p>
+          <pre className="mt-2 text-sm text-gray-700 whitespace-pre-wrap">{errMsg}</pre>
+          <div className="mt-4">
+            <Link href="/documents" className="rounded-xl border px-4 py-2 hover:bg-gray-50">← Back to Documents</Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   if (notFound) {
     return (
@@ -117,7 +154,7 @@ export default function DocumentDetailClient({ docKey }: { docKey: string }) {
             {estimate.number ? <div><span className="font-medium">Number:</span> {estimate.number}</div> : null}
             {estimate.customerName ? <div><span className="font-medium">Customer:</span> {estimate.customerName}</div> : null}
             {estimate.jobNumber ? <div><span className="font-medium">Job #:</span> {estimate.jobNumber}</div> : null}
-            <div><span className="font-medium">Created:</span> {formatWhen(estimate.createdAt)}</div>
+            <div><span className="font-medium">Created:</span> {safeFormatDate(estimate.createdAt)}</div>
             {typeof estimate.total === "number" ? (
               <div><span className="font-medium">Total:</span> {money(estimate.total)}</div>
             ) : null}
@@ -143,4 +180,3 @@ export default function DocumentDetailClient({ docKey }: { docKey: string }) {
     </main>
   );
 }
-
