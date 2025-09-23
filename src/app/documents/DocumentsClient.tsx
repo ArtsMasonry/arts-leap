@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 
 type Doc = {
@@ -160,8 +161,21 @@ export default function DocumentsClient() {
                 {"total" in d && typeof d.total === "number" && <div>Total: ${d.total.toFixed(2)}</div>}
               </div>
               <div className="mt-4 flex gap-2">
-                <button className="text-sm rounded-xl px-3 py-2 border hover:bg-gray-50">Open</button>
-                <button className="text-sm rounded-xl px-3 py-2 border hover:bg-gray-50">PDF</button>
+                {/* Open now navigates to /documents/[id] */}
+                <Link
+                  href={`/documents/${d.id}`}
+                  className="text-sm rounded-xl px-3 py-2 border hover:bg-gray-50"
+                >
+                  Open
+                </Link>
+                {/* PDF is a stub for now */}
+                <button
+                  className="text-sm rounded-xl px-3 py-2 border text-gray-400 cursor-not-allowed"
+                  title="PDF preview coming soon"
+                  disabled
+                >
+                  PDF
+                </button>
               </div>
             </div>
           ))}
