@@ -154,7 +154,7 @@ export default function DocumentsClient() {
     <main className="p-0 md:p-6">
       <h1 className="text-2xl font-bold px-4 md:px-0">Documents</h1>
       <p className="text-gray-600 mb-4 px-4 md:px-0">
-        Estimates from Firestore (more types soon). Open goes to /documents/{`{TYPE}:{id}`}.
+        Estimates from Firestore (more types soon). Open goes to /documents/&lt;type&gt;/&lt;id&gt;.
       </p>
 
       {/* Filter bar */}
@@ -205,60 +205,42 @@ export default function DocumentsClient() {
         <div className="text-gray-600 px-4 md:px-0">No documents match your filters.</div>
       ) : (
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 px-4 md:px-0">
-          {filtered.map(d => (
-            <div
-              key={d.id}
-              className="rounded-2xl border bg-white p-4 shadow-sm hover:shadow-md transition"
-            >
-              <div className="flex items-start justify-between">
-                <span className={`text-xs px-2 py-1 rounded-full ${typeBadgeClass(d.type)}`}>
-                  {d.type.replace("_"," ")}
-                </span>
-                <span className={`text-xs px-2 py-1 rounded-full ${statusBadgeClass(d.status)}`}>
-                  {d.status}
-                </span>
+          {filtered.map(d => {
+            const typeSeg = d.type.toLowerCase(); // estimate, contract, invoice, change_order
+            return (
+              <div key={d.id} className="rounded-2xl border bg-white p-4 shadow-sm hover:shadow-md transition">
+                <div className="flex items-start justify-between">
+                  <span className={`text-xs px-2 py-1 rounded-full ${typeBadgeClass(d.type)}`}>{d.type.replace("_"," ")}</span>
+                  <span className={`text-xs px-2 py-1 rounded-full ${statusBadgeClass(d.status)}`}>{d.status}</span>
+                </div>
+                <div className="mt-3">
+                  <div className="text-sm text-gray-500">{d.number}</div>
+                  <div className="text-base font-semibold">{d.title}</div>
+                </div>
+                <div className="mt-3 text-sm text-gray-600 space-y-1">
+                  {d.jobNumber && <div>Job: <span className="font-medium">{d.jobNumber}</span></div>}
+                  <div>Date: {new Date(d.issueDate).toLocaleDateString()}</div>
+                  {d.customerName ? <div>Customer: <span className="font-medium">{d.customerName}</span></div> : null}
+                  {"total" in d && typeof d.total === "number" && <div>Total: ${d.total.toFixed(2)}</div>}
+                </div>
+                <div className="mt-4 flex gap-2">
+                  <Link
+                    href={`/documents/${typeSeg}/${encodeURIComponent(d.id)}`}
+                    className="text-sm rounded-xl px-3 py-2 border hover:bg-gray-50"
+                  >
+                    Open
+                  </Link>
+                  <button
+                    className="text-sm rounded-xl px-3 py-2 border text-gray-400 cursor-not-allowed"
+                    title="PDF preview coming soon"
+                    disabled
+                  >
+                    PDF
+                  </button>
+                </div>
               </div>
-
-              <div className="mt-3">
-                <div className="text-sm text-gray-500">{d.number}</div>
-                <div className="text-base font-semibold">{d.title}</div>
-              </div>
-
-              <div className="mt-3 text-sm text-gray-600 space-y-1">
-                {d.jobNumber && (
-                  <div>
-                    Job: <span className="font-medium">{d.jobNumber}</span>
-                  </div>
-                )}
-                <div>Date: {new Date(d.issueDate).toLocaleDateString()}</div>
-                {d.customerName ? (
-                  <div>
-                    Customer: <span className="font-medium">{d.customerName}</span>
-                  </div>
-                ) : null}
-                {"total" in d && typeof d.total === "number" && (
-                  <div>Total: ${d.total.toFixed(2)}</div>
-                )}
-              </div>
-
-              <div className="mt-4 flex gap-2">
-                {/* Open → unified documents route with type prefix */}
-                <Link
-                  href={`/documents/${d.type}:${d.id}`}
-                  className="text-sm rounded-xl px-3 py-2 border hover:bg-gray-50"
-                >
-                  Open
-                </Link>
-                <button
-                  className="text-sm rounded-xl px-3 py-2 border text-gray-400 cursor-not-allowed"
-                  title="PDF preview coming soon"
-                  disabled
-                >
-                  PDF
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </main>
