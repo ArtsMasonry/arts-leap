@@ -1,6 +1,13 @@
-﻿.next
+﻿# root
 node_modules
-.env*
-!.env.example
-.firebase
-.firebaserc.local
+dist
+.build
+.DS_Store
+.env
+.env.*
+# Next
+.next
+# Logs
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
