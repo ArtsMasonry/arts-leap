@@ -1,100 +1,31 @@
-import type { Metadata } from "next";
-import Link from "next/link";
 import "./globals.css";
+import Link from "next/link";
 
-export const metadata: Metadata = {
-  title: {
-    default: "Art’s Leap",
-    template: "%s • Art’s Leap",
-  },
-  description: "Estimates, proposals, and jobs for Art’s Masonry.",
-  metadataBase: new URL("https://arts-leap--arts-leap.us-central1.hosted.app"),
-  icons: { icon: "/favicon.ico" },
+export const metadata = {
+  title: "Art’s Leap",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body
-        style={{
-          margin: 0,
-          fontFamily:
-            "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif",
-          background: "#f7f7f7",
-          color: "#111",
-        }}
-      >
-        {/* Top nav with logo */}
-        <header
-          style={{
-            position: "sticky",
-            top: 0,
-            zIndex: 10,
-            background: "white",
-            borderBottom: "1px solid #eee",
-          }}
-        >
-          <nav
-            style={{
-              maxWidth: 1000,
-              margin: "0 auto",
-              padding: "12px 16px",
-              display: "flex",
-              alignItems: "center",
-              gap: 16,
-            }}
-          >
-            <Link
-              href="/"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                textDecoration: "none",
-                color: "#111",
-                fontWeight: 700,
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/logo.png"
-                alt="Art’s Masonry logo"
-                width={36}
-                height={36}
-                style={{ borderRadius: 6, objectFit: "cover" }}
-              />
-              <span>Art’s Leap</span>
+      <body className="min-h-screen bg-gray-50 text-gray-900">
+        {/* Top nav */}
+        <header className="border-b bg-white">
+          <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+            <Link href="/" className="flex items-center gap-2 font-semibold">
+              <span role="img" aria-label="bricks">🧱</span> Art’s Leap
             </Link>
-
-            <div style={{ flex: 1 }} />
-
-            <Link href="/" style={{ textDecoration: "none", color: "#333" }}>
-              Home
-            </Link>
-            <Link
-              href="/estimates"
-              style={{ textDecoration: "none", color: "#333" }}
-            >
-              Estimates
-            </Link>
-            <Link
-              href="/customers"
-              style={{ textDecoration: "none", color: "#333" }}
-            >
-              Customers
-            </Link>
-            {/* later: consider showing /request-bid publicly on main site instead */}
+            <div className="flex items-center gap-6 text-sm">
+              <Link href="/" className="hover:underline">Home</Link>
+              <Link href="/estimates" className="hover:underline">Estimates</Link>
+              <Link href="/customers" className="hover:underline">Customers</Link>
+              <Link href="/documents" className="hover:underline">Documents</Link>
+            </div>
           </nav>
         </header>
 
-        <main style={{ maxWidth: 1000, margin: "16px auto", padding: "0 16px" }}>
-          {children}
-        </main>
+        {/* Page */}
+        <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
       </body>
     </html>
   );
-}
