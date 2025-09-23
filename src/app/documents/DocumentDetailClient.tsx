@@ -1,46 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { useMemo } from "react";
 
 type SupportedType = "ESTIMATE" | "CONTRACT" | "CHANGE_ORDER" | "INVOICE";
 
-type Estimate = {
-  title?: string;
-  status?: string;
-  total?: number;
-  customerName?: string;
-  jobNumber?: string | null;
-  number?: string;
-  createdAt?: any;
-};
-
-function safeFormatDate(ts?: any) {
-  try {
-    if (!ts) return "";
-    if (typeof ts.toDate === "function") return (ts.toDate() as Date).toLocaleDateString();
-    const d = new Date(ts);
-    return isNaN(d.getTime()) ? "" : d.toLocaleDateString();
-  } catch {
-    return "";
-  }
-}
-function money(n?: number) {
-  return typeof n === "number"
-    ? n.toLocaleString("en-US", { style: "currency", currency: "USD" })
-    : "";
-}
-
 export default function DocumentDetailClient({ docKey }: { docKey: string }) {
-  // Be tolerant of URL-encoding/strange keys
+  // Be tolerant of weird encodings
   const decodedKey = useMemo(() => {
-    try {
-      return decodeURIComponent(docKey);
-    } catch {
-      return docKey;
-    }
+    try { return decodeURIComponent(docKey); } catch { return docKey; }
   }, [docKey]);
 
   const [type, id] = useMemo(() => {
@@ -50,52 +18,6 @@ export default function DocumentDetailClient({ docKey }: { docKey: string }) {
     const i = decodedKey.slice(idx + 1);
     return [t, i] as const;
   }, [decodedKey]);
-
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [errMsg, setErrMsg] = useState<string | null>(null);
-  const [estimate, setEstimate] = useState<Estimate | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const run = async () => {
-      setErrMsg(null);
-      setNotFound(false);
-      setLoading(true);
-      try {
-        if (!type || !id) {
-          setNotFound(true);
-          return;
-        }
-        if (type === "ESTIMATE") {
-          // Guard: db may be undefined if Firebase init failed
-          if (!db) {
-            setErrMsg("Firestore is not initialized (db missing).");
-            return;
-          }
-          const ref = doc(db, "estimates", id);
-          const snap = await getDoc(ref);
-          if (!snap.exists()) {
-            setNotFound(true);
-          } else {
-            const data = (snap.data() as Estimate) ?? {};
-            if (!cancelled) setEstimate(data);
-          }
-          return;
-        }
-        // Other types pending
-        setNotFound(true);
-      } catch (e: any) {
-        setErrMsg(e?.message ?? "Unknown error during load.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [type, id]);
 
   if (!type || !id) {
     return (
@@ -109,74 +31,26 @@ export default function DocumentDetailClient({ docKey }: { docKey: string }) {
     );
   }
 
-  if (loading) return <main className="p-6">Loading…</main>;
+  return (
+    <main className="p-6 max-w-3xl mx-auto">
+      <h1 className="text-2xl font-bold">Document</h1>
+      <div className="text-gray-600 mt-1">Parsed OK</div>
 
-  if (errMsg) {
-    return (
-      <main className="p-6">
-        <h1 className="text-2xl font-bold">Document</h1>
-        <div className="mt-3 rounded-2xl border bg-white p-4">
-          <p className="text-red-700">Error loading document:</p>
-          <pre className="mt-2 text-sm text-gray-700 whitespace-pre-wrap">{errMsg}</pre>
-          <div className="mt-4">
-            <Link href="/documents" className="rounded-xl border px-4 py-2 hover:bg-gray-50">← Back to Documents</Link>
+      <section className="mt-4 rounded-2xl border bg-white p-4">
+        <div className="grid gap-2 text-sm text-gray-700">
+          <div><span className="font-medium">Type:</span> {type}</div>
+          <div><span className="font-medium">ID:</span> <span className="font-mono">{id}</span></div>
+          <div className="text-gray-600 mt-2">
+            (Temporary diagnostic component – no Firestore calls yet.)
           </div>
         </div>
-      </main>
-    );
-  }
+      </section>
 
-  if (notFound) {
-    return (
-      <main className="p-6">
-        <h1 className="text-2xl font-bold">Document</h1>
-        <p className="text-gray-700 mt-2">
-          No {type.toLowerCase().replace("_", " ")} found for ID <code>{id}</code>.
-        </p>
-        <Link href="/documents" className="inline-block mt-4 rounded-xl border px-4 py-2 hover:bg-gray-50">
+      <div className="mt-4">
+        <Link href="/documents" className="rounded-xl border px-4 py-2 hover:bg-gray-50">
           ← Back to Documents
         </Link>
-      </main>
-    );
-  }
-
-  if (type === "ESTIMATE" && estimate) {
-    const title = estimate.title || "Estimate";
-    const status = (estimate.status || "DRAFT").toString().toUpperCase();
-    return (
-      <main className="p-6 max-w-3xl mx-auto">
-        <h1 className="text-2xl font-bold">{title}</h1>
-        <div className="text-gray-600 mt-1">Type: Estimate</div>
-
-        <section className="mt-4 rounded-2xl border bg-white p-4">
-          <div className="grid gap-2 text-sm text-gray-700">
-            <div><span className="font-medium">Status:</span> {status}</div>
-            {estimate.number ? <div><span className="font-medium">Number:</span> {estimate.number}</div> : null}
-            {estimate.customerName ? <div><span className="font-medium">Customer:</span> {estimate.customerName}</div> : null}
-            {estimate.jobNumber ? <div><span className="font-medium">Job #:</span> {estimate.jobNumber}</div> : null}
-            <div><span className="font-medium">Created:</span> {safeFormatDate(estimate.createdAt)}</div>
-            {typeof estimate.total === "number" ? (
-              <div><span className="font-medium">Total:</span> {money(estimate.total)}</div>
-            ) : null}
-          </div>
-        </section>
-
-        <div className="mt-4">
-          <Link href="/documents" className="rounded-xl border px-4 py-2 hover:bg-gray-50">
-            ← Back to Documents
-          </Link>
-        </div>
-      </main>
-    );
-  }
-
-  return (
-    <main className="p-6">
-      <h1 className="text-2xl font-bold">Document</h1>
-      <p className="text-gray-700 mt-2">Unsupported type: {type}</p>
-      <Link href="/documents" className="inline-block mt-4 rounded-xl border px-4 py-2 hover:bg-gray-50">
-        ← Back to Documents
-      </Link>
+      </div>
     </main>
   );
 }
