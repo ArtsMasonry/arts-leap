@@ -1,7 +1,10 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
+
+// Force this page to render dynamically on the server (prevents prerender/export attempts)
+export const dynamic = "force-dynamic";
 
 type Doc = {
   id: string;
@@ -65,12 +68,28 @@ const MOCK: readonly Doc[] = [
   },
 ];
 
+// ---- Wrapper required by Next.js when using useSearchParams on a page ----
 export default function DocumentsPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="p-6">
+          <h1 className="text-2xl font-bold">Documents</h1>
+          <p className="text-gray-600">Loading…</p>
+        </main>
+      }
+    >
+      <DocumentsClient />
+    </Suspense>
+  );
+}
+
+// ---- Actual client component using useSearchParams ----
+function DocumentsClient() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
 
-  // state
   const [status, setStatus] = useState<string>("");
   const [customer, setCustomer] = useState<string>("");
   const [jobNumber, setJobNumber] = useState<string>("");
@@ -81,9 +100,9 @@ export default function DocumentsPage() {
     setCustomer(searchParams.get("customer") ?? "");
     setJobNumber(searchParams.get("job") ?? "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // run once on mount
+  }, []);
 
-  // helper to update URL (and state)
+  // helper to update URL
   const setParam = (key: "status" | "customer" | "job", value: string) => {
     const sp = new URLSearchParams(Array.from(searchParams.entries()));
     if (value) sp.set(key, value);
@@ -91,7 +110,6 @@ export default function DocumentsPage() {
     router.replace(`${pathname}?${sp.toString()}`);
   };
 
-  // dropdown options from data
   const statusOptions = useMemo(() => {
     const s = Array.from(new Set(MOCK.map((d) => d.status))).sort();
     return ["", ...s];
@@ -101,7 +119,6 @@ export default function DocumentsPage() {
     return ["", ...c];
   }, []);
 
-  // filtered list
   const docs = useMemo(() => {
     return MOCK.filter((d) => {
       const statusOk = status ? d.status === status : true;
@@ -116,9 +133,7 @@ export default function DocumentsPage() {
   return (
     <main className="p-6">
       <h1 className="text-2xl font-bold">Documents</h1>
-      <p className="text-gray-600 mb-4">
-        All documents. Filters persist in the URL now.
-      </p>
+      <p className="text-gray-600 mb-4">All documents. Filters persist in the URL.</p>
 
       {/* Filter bar */}
       <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
